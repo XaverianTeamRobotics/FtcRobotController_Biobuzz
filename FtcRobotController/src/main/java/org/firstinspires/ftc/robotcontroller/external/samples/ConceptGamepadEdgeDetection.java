@@ -51,6 +51,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
 
+/**
 @Disabled
 @TeleOp(name="Concept: Gamepad Edge Detection", group ="Concept")
 public class ConceptGamepadEdgeDetection extends LinearOpMode {
@@ -106,3 +107,4 @@ public class ConceptGamepadEdgeDetection extends LinearOpMode {
         telemetry.update();
     }
 }
+*/
