@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Vectors.TestFiles;
+package org.firstinspires.ftc.teamcode.Vectors.TeleOp.Work;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -8,26 +8,25 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@TeleOp(name = "PreBiobuzzCode", group = "Biobuzz")
-public class PreBiobuzzTemplate extends OpMode {
+@TeleOp(name = "PreBiobuzzIdea1", group = "Biobuzz")
+public class PreBiobuzzIdea1 extends OpMode {
     private Follower follower;
     private double double1;
-    DcMotor motor4, motor5, motor6, motor7;
-    Servo servo0;
+    DcMotor intake, roller, motor6, motor7;
+    Servo rollerservo;
 
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(60.0,8.5,Math.toRadians(90)));
+        //change starting pose
+        follower.setStartingPose(new Pose(0,0,Math.toRadians(90)));
 
-
-        motor4 = hardwareMap.get(DcMotor.class, "motor4");
-        motor5 = hardwareMap.get(DcMotor.class, "motor5");
+        intake = hardwareMap.get(DcMotor.class, "motor4");
+        roller = hardwareMap.get(DcMotor.class, "motor5");
         motor6 = hardwareMap.get(DcMotor.class, "motor6");
         motor7 = hardwareMap.get(DcMotor.class, "motor7");
 
-        servo0 = hardwareMap.get(Servo.class, "servo0");
-
+        rollerservo = hardwareMap.get(Servo.class, "servo0");
 
         //motor4.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //motor5.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -38,6 +37,7 @@ public class PreBiobuzzTemplate extends OpMode {
     @Override
     public void start(){
         follower.startTeleOpDrive();
+        rollerservo.setPosition(0.5);
     }
 
     @Override
@@ -52,7 +52,10 @@ public class PreBiobuzzTemplate extends OpMode {
 
 // GAMEPAD 1 CONTROLS
         if (gamepad1.right_bumper){
-
+            intake.setPower(0.7);
+        }
+        if (gamepad1.rightBumperWasReleased()){
+            intake.setPower(0.0);
         }
         if (gamepad1.left_bumper){
 
@@ -82,7 +85,11 @@ public class PreBiobuzzTemplate extends OpMode {
 
         }
 // GAMEPAD 2 CONTROLS
-
+    // ANGLING
+        if (gamepad2.left_stick_x != 0) {
+            rollerservo.setPosition((gamepad2.left_stick_x + 1) / 2);
+        }
+    //REGULAR
         if (gamepad2.right_bumper){
 
         }
