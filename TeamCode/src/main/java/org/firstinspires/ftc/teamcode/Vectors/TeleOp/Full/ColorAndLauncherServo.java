@@ -5,21 +5,22 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 @TeleOp(name = "ColorAndLauncherServo", group = "Sensors")
 public class ColorAndLauncherServo extends LinearOpMode {
-
-    private ColorSensor colorSensor;
-    private DistanceSensor distanceSensor;
-    private Servo colorServo;
 
     // Servo Position Constants
     private static final double SERVO_YELLOW = 1.0;
     private static final double SERVO_RED_BLUE = 0.0;
     private static final double SERVO_RESTING = 0.5;
 
-    // Detected color states
+    // Timing Constants (in seconds)
+    private static final double VERIFICATION_TIME_SEC = 0.5;
+    private static final double SERVO_HOLD_TIME_SEC = 1.0;
+
+    // Detect color states
     public enum DetectedColor {
         YELLOW,
         RED,
@@ -27,14 +28,23 @@ public class ColorAndLauncherServo extends LinearOpMode {
         NONE
     }
 
+    // Timers
+    private final ElapsedTime verificationTimer = new ElapsedTime();
+    private final ElapsedTime servoActionTimer = new ElapsedTime();
+
+    // State Tracking
+    private DetectedColor pendingColor = DetectedColor.NONE;
+    private DetectedColor verifiedColor = DetectedColor.NONE;
+    private boolean isHoldingServo = false;
+
     @Override
     public void runOpMode() {
         // Initialize color/distance sensor from hardware map
-        colorSensor = hardwareMap.get(ColorSensor.class, "colorSensor0");
-        distanceSensor = hardwareMap.get(DistanceSensor.class, "colorSensor0");
+        ColorSensor colorSensor = hardwareMap.get(ColorSensor.class, "colorSensor0");
+        DistanceSensor distanceSensor = hardwareMap.get(DistanceSensor.class, "colorSensor0");
 
         // Initialize servo from hardware map
-        colorServo = hardwareMap.get(Servo.class, "colorServo");
+        Servo colorServo = hardwareMap.get(Servo.class, "colorServo");
 
         // Set servo to initial resting position
         colorServo.setPosition(SERVO_RESTING);
@@ -53,36 +63,59 @@ public class ColorAndLauncherServo extends LinearOpMode {
             // Read proximity distance in cm
             double distanceCm = distanceSensor.getDistance(DistanceUnit.CM);
 
-            // Determine detected color
-            DetectedColor currentColor = getDetectedColor(red, green, blue, distanceCm);
+            // 1. Get raw color reading from sensor
+            DetectedColor rawColor = getDetectedColor(red, green, blue, distanceCm);
 
-            // Actuate servo based on detected color
+            // 2. Handle Color Verification (Must read consistently for 0.5s)
+            if (rawColor != DetectedColor.NONE) {
+                if (rawColor != pendingColor) {
+                    // New color spotted, restart verification timer
+                    pendingColor = rawColor;
+                    verificationTimer.reset();
+                } else if (verificationTimer.seconds() >= VERIFICATION_TIME_SEC && !isHoldingServo) {
+                    // Color verified for 0.5s and no active servo action is running
+                    verifiedColor = pendingColor;
+                    isHoldingServo = true;
+                    servoActionTimer.reset(); // Start 1.0s servo hold timer
+                }
+            } else {
+                // Sensor sees nothing/out of range: reset verification
+                pendingColor = DetectedColor.NONE;
+            }
+
+            // 3. Control Servo Output
             double targetServoPosition = SERVO_RESTING;
 
-            switch (currentColor) {
-                case YELLOW:
-                    targetServoPosition = SERVO_YELLOW; // Position 1.0
-                    break;
-                case RED:
-                case BLUE:
-                    targetServoPosition = SERVO_RED_BLUE; // Position 0.0
-                    break;
-                case NONE:
-                default:
-                    targetServoPosition = SERVO_RESTING; // Position 0.5
-                    break;
+            if (isHoldingServo) {
+                if (servoActionTimer.seconds() < SERVO_HOLD_TIME_SEC) {
+                    // Move servo based on verified color
+                    if (verifiedColor == DetectedColor.YELLOW) {
+                        targetServoPosition = SERVO_YELLOW;
+                    } else if (verifiedColor == DetectedColor.RED || verifiedColor == DetectedColor.BLUE) {
+                        targetServoPosition = SERVO_RED_BLUE;
+                    }
+                } else {
+                    // 1.0-second timer complete: return to resting state
+                    isHoldingServo = false;
+                    verifiedColor = DetectedColor.NONE;
+                    pendingColor = DetectedColor.NONE;
+                }
             }
 
             colorServo.setPosition(targetServoPosition);
 
-            // Telemetry output
-            telemetry.addData("Detected Color", currentColor);
+            // Telemetry Output
+            telemetry.addData("Raw Color", rawColor);
+            telemetry.addData("Pending Color", pendingColor);
+            telemetry.addData("Verified Color", verifiedColor);
+            telemetry.addData("Holding Servo", isHoldingServo);
             telemetry.addData("Servo Position", "%.2f", targetServoPosition);
             telemetry.addData("Distance (cm)", "%.2f", distanceCm);
             telemetry.addData("RGB Values", "R: %d | G: %d | B: %d", red, green, blue);
             telemetry.update();
         }
     }
+
     private DetectedColor getDetectedColor(int r, int g, int b, double distanceCm) {
         // Target object must be within 5 cm to trigger valid detection
         if (distanceCm > 5.0) {
