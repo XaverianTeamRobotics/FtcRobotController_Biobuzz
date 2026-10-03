@@ -18,8 +18,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import java.util.List;
 
-@TeleOp(name = "Blue Alliance TeleOp 2", group = "TeleOp")
-public class BlueAllianceTeleOp2 extends LinearOpMode {
+@TeleOp(name = "Blue Alliance TeleOp 5", group = "TeleOp")
+public class BlueAllianceTeleOp5 extends LinearOpMode {
 
     // Drive Motors
     private DcMotor FL, BL, FR, BR;
