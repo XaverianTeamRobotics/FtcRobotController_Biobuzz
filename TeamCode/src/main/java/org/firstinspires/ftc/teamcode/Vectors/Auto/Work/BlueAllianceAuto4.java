@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Vectors.Auto.Full;
+package org.firstinspires.ftc.teamcode.Vectors.Auto.Work;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
@@ -18,8 +18,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import java.util.List;
 
-@Autonomous(name = "Red Alliance Auto 4", group = "Auto")
-public class RedAllianceAuto4 extends LinearOpMode {
+@Autonomous(name = "Blue Alliance Auto 4", group = "Auto")
+public class BlueAllianceAuto4 extends LinearOpMode {
 
     // Drivetrain & Intakes
     private DcMotor FL, BL, FR, BR;
@@ -87,10 +87,10 @@ public class RedAllianceAuto4 extends LinearOpMode {
         colorServo.setPosition(LAUNCHER_SIZE_REST);
 
         // Switch Limelight to Pipeline 0 for Red Alliance
-        limelight.pipelineSwitch(0);
+        limelight.pipelineSwitch(1);
         limelight.start();
 
-        telemetry.addData("Status", "Red Alliance Auto Initialized (Pipeline 0)");
+        telemetry.addData("Status", "Blue Alliance Auto Initialized (Pipeline 1)");
         telemetry.update();
 
         waitForStart();
