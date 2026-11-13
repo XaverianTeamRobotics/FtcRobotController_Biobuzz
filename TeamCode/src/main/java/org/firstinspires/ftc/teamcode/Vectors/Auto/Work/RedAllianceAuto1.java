@@ -48,14 +48,20 @@ public class RedAllianceAuto1 extends LinearOpMode {
                         Pose3D targetPose = fiducial.getRobotPoseTargetSpace();
 
                         if (targetPose != null) {
-                            // 6. Extract the cluster orientation yaw angle in degrees
+                            // Extract the cluster orientation yaw angle in degrees
                             double targetYaw = targetPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                            double tagPitch = targetPose.getOrientation().getPitch(AngleUnit.DEGREES);
                             int tagId = fiducial.getFiducialId();
 
-                            // 7. Disregard the cluster tag if it falls outside -90.0 to 90.0 degrees
+                            // Disregard the cluster tag if it falls outside -90.0 to 90.0 degrees
+                            if (Math.abs(tagPitch) > 30.0) {
+                                telemetry.addData("Rejected Tag ID " + tagId, "Wrong Tilt (Pitch: %.1f)", tagPitch);
+                                continue;
+                            }
+
                             if (targetYaw < -90.0 || targetYaw > 90.0) {
-                                telemetry.addData("Rejected Tag ID " + tagId, "Outside Target Window (Yaw: %.1f)", targetYaw);
-                                continue; // Skips to the next tag in the frame
+                                telemetry.addData("Rejected Tag ID " + tagId, "Backside/Outside Window (Yaw: %.1f)", targetYaw);
+                                continue;
                             }
 
                             // 8. TARGET PROCESSED: Safe execution parameters go here
