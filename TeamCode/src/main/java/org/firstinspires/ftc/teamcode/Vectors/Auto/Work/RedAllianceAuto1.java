@@ -16,14 +16,14 @@ public class RedAllianceAuto1 extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        // 1. Map the Limelight hardware from the robot configuration
+        // Map the Limelight hardware from the robot configuration
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
-        // 2. Set the tracking pipeline to 1 as requested
+        // Switch the Limelight to use Pipeline 0 (Configured for Red Tag IDs)
         telemetry.addLine("Initializing Limelight to Pipeline 0 (Red Alliance)...");
         limelight.pipelineSwitch(0);
 
-        // 3. Start processing frames
+        // Start processing camera streams
         limelight.start();
 
         telemetry.addData("Status", "Pipeline 0 Ready. Waiting for start...");
@@ -32,11 +32,11 @@ public class RedAllianceAuto1 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            // 4. Retrieve the latest vision processing results
+            // Retrieve the latest vision processing results
             LLResult result = limelight.getLatestResult();
 
             if (result != null && result.isValid()) {
-                // Get global robot pose on the field if localization is configured
+                // Get global robot pose on the field
                 Pose3D botpose = result.getBotpose();
 
                 // Get the individual tracked tags inside the cluster
@@ -44,28 +44,36 @@ public class RedAllianceAuto1 extends LinearOpMode {
 
                 if (fiducials != null && !fiducials.isEmpty()) {
                     for (FiducialResult fiducial : fiducials) {
-                        // 5. Query the 3D target coordinates relative to the robot base
+                        // Query the 3D target coordinates relative to the robot base
                         Pose3D targetPose = fiducial.getRobotPoseTargetSpace();
 
                         if (targetPose != null) {
-                            // Extract the cluster orientation yaw angle in degrees
+                            // Extract orientation angles in degrees
                             double targetYaw = targetPose.getOrientation().getYaw(AngleUnit.DEGREES);
                             double tagPitch = targetPose.getOrientation().getPitch(AngleUnit.DEGREES);
+                            double tagRoll = targetPose.getOrientation().getRoll(AngleUnit.DEGREES);
                             int tagId = fiducial.getFiducialId();
 
-                            // Disregard the cluster tag if it falls outside -90.0 to 90.0 degrees
+                            // Disregard the cluster tag if pitch falls outside acceptable tilt
                             if (Math.abs(tagPitch) > 30.0) {
-                                telemetry.addData("Rejected Tag ID " + tagId, "Wrong Tilt (Pitch: %.1f)", tagPitch);
+                                telemetry.addData("Rejected Tag ID " + tagId, "Wrong Seesaw Tilt (Pitch: %.1f)", tagPitch);
                                 continue;
                             }
 
+                            // Disregard if outside horizontal viewing window
                             if (targetYaw < -90.0 || targetYaw > 90.0) {
                                 telemetry.addData("Rejected Tag ID " + tagId, "Backside/Outside Window (Yaw: %.1f)", targetYaw);
                                 continue;
                             }
 
-                            // 8. TARGET PROCESSED: Safe execution parameters go here
-                            telemetry.addLine(String.format("\n== TARGET LOCKED: ID %d == ", tagId));
+                            // Disregard upside-down tags on the other side of the tip
+                            if (Math.abs(tagRoll) > 90.0) {
+                                telemetry.addData("Rejected Tag ID " + tagId, "Upside-Down Tag (Roll: %.1f)", tagRoll);
+                                continue;
+                            }
+
+                            // TARGET PROCESSED: Safe tracking data is verified here
+                            telemetry.addLine(String.format("\n== RED TARGET LOCKED: ID %d == ", tagId));
                             telemetry.addData("Target Yaw (Rotation)", "%.2f deg", targetYaw);
                             telemetry.addData("Relative X (Left/Right)", "%.2f in", targetPose.getPosition().x);
                             telemetry.addData("Relative Y (Forward/Back)", "%.2f in", targetPose.getPosition().y);
@@ -77,17 +85,17 @@ public class RedAllianceAuto1 extends LinearOpMode {
                         }
                     }
                 } else {
-                    telemetry.addLine("No active cluster elements tracked inside Pipeline 1.");
+                    telemetry.addLine("No active cluster elements tracked inside Pipeline 0.");
                 }
             } else {
                 telemetry.addLine("Searching for Red Alliance cluster tags...");
             }
 
             telemetry.update();
-            sleep(20); // Small thread sleep to keep CPU usage low
+            sleep(20);
         }
 
-        // 9. Stop vision camera processing when the OpMode terminates
+        // Stop vision camera processing when the OpMode terminates
         limelight.stop();
     }
 }

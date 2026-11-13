@@ -48,19 +48,27 @@ public class BlueAllianceAuto1 extends LinearOpMode {
                         Pose3D targetPose = fiducial.getRobotPoseTargetSpace();
 
                         if (targetPose != null) {
-                            // Extract the cluster orientation yaw angle in degrees
+                            // Extract orientation angles in degrees
                             double targetYaw = targetPose.getOrientation().getYaw(AngleUnit.DEGREES);
                             double tagPitch = targetPose.getOrientation().getPitch(AngleUnit.DEGREES);
+                            double tagRoll = targetPose.getOrientation().getRoll(AngleUnit.DEGREES);
                             int tagId = fiducial.getFiducialId();
 
-                            // Disregard the cluster tag if it falls outside -90.0 to 90.0 degrees
+                            // Disregard the cluster tag if pitch falls outside acceptable tilt
                             if (Math.abs(tagPitch) > 30.0) {
                                 telemetry.addData("Rejected Tag ID " + tagId, "Wrong Seesaw Tilt (Pitch: %.1f)", tagPitch);
                                 continue;
                             }
 
+                            // Disregard if outside horizontal viewing window
                             if (targetYaw < -90.0 || targetYaw > 90.0) {
                                 telemetry.addData("Rejected Tag ID " + tagId, "Backside/Outside Window (Yaw: %.1f)", targetYaw);
+                                continue;
+                            }
+
+                            // Disregard upside-down tags on the other side of the tip
+                            if (Math.abs(tagRoll) > 90.0) {
+                                telemetry.addData("Rejected Tag ID " + tagId, "Upside-Down Tag (Roll: %.1f)", tagRoll);
                                 continue;
                             }
 
